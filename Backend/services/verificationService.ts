@@ -1,7 +1,8 @@
 import { googleAuth } from './googleServices.js';
+import { VerificationResult } from '../types.js';
 
-export const verifyCompleteSetup = async () => {
-  const results = [];
+export const verifyCompleteSetup = async (): Promise<VerificationResult[]> => {
+  const results: VerificationResult[] = [];
 
   // 1. Check environment variables
   results.push(checkEnvironmentVariables());
@@ -61,7 +62,7 @@ export const verifyCompleteSetup = async () => {
   return results;
 };
 
-function checkEnvironmentVariables() {
+function checkEnvironmentVariables(): VerificationResult {
   const required = [
     'GOOGLE_APPLICATION_CREDENTIALS',
     'GOOGLE_PROJECT_ID',
@@ -91,7 +92,7 @@ function checkEnvironmentVariables() {
   };
 }
 
-async function checkGoogleCredentials() {
+async function checkGoogleCredentials(): Promise<VerificationResult> {
   try {
     const authClient = await googleAuth.getAuthClient();
     
@@ -111,7 +112,7 @@ async function checkGoogleCredentials() {
   }
 }
 
-async function checkDriveAccess() {
+async function checkDriveAccess(): Promise<VerificationResult> {
   try {
     const drive = await googleAuth.getDriveClient();
     const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -221,9 +222,9 @@ async function checkDriveAccess() {
   }
 }
 
-async function checkAllCalendars() {
+async function checkAllCalendars(): Promise<VerificationResult[]> {
   const calendar = await googleAuth.getCalendarClient();
-  const results = [];
+  const results: VerificationResult[] = [];
 
   const calendars = [
     { name: 'Nationaal', id: process.env.GOOGLE_CALENDAR_NATIONAAL },
@@ -330,7 +331,7 @@ async function checkAllCalendars() {
   return results;
 }
 
-async function checkOpenRouterAPI() {
+async function checkOpenRouterAPI(): Promise<VerificationResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   
   if (!apiKey) {

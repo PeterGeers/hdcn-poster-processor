@@ -2,8 +2,6 @@ import { GoogleAuth } from 'google-auth-library';
 import { google } from 'googleapis';
 
 class GoogleAuthService {
-  private auth: GoogleAuth;
-  
   constructor() {
     this.auth = new GoogleAuth({
       keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,

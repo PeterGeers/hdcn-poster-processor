@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
+import { EventDetails, CalendarType } from '../types.js';
 
-export const extractEventDetails = async (imageBase64) => {
+export const extractEventDetails = async (imageBase64: string): Promise<EventDetails> => {
   console.log('Starting OCR extraction...');
   
   const apiKey = process.env.VITE_GEMINI_API_KEY;
@@ -56,7 +57,7 @@ export const extractEventDetails = async (imageBase64) => {
     if (!text) throw new Error("No data returned from Gemini.");
 
     // Parse the response
-    const extractField = (text, field) => {
+    const extractField = (text: string, field: string): string | null => {
       const regex = new RegExp(`${field}[:\\s]+([^\\n]+)`, 'i');
       const match = text.match(regex);
       return match ? match[1].trim() : null;
@@ -73,20 +74,43 @@ export const extractEventDetails = async (imageBase64) => {
     let endDate = new Date();
     
     if (dateStr) {
-      const parsedDate = new Date(dateStr + 'T' + timeStr);
+      // Try parsing with time first
+      let parsedDate = new Date(dateStr + 'T' + timeStr);
+      
+      // If that fails, try just the date
+      if (isNaN(parsedDate.getTime())) {
+        parsedDate = new Date(dateStr);
+        if (!isNaN(parsedDate.getTime())) {
+          // Set default time to 9:00 AM
+          parsedDate.setHours(9, 0, 0, 0);
+        }
+      }
+      
       if (!isNaN(parsedDate.getTime())) {
         startDate = parsedDate;
         endDate = new Date(parsedDate.getTime() + 4 * 60 * 60 * 1000); // +4 hours
+      } else {
+        // Fallback: next week at 9:00 AM
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() + 7);
+        startDate.setHours(9, 0, 0, 0);
+        endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
       }
+    } else {
+      // No date found: default to next week
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() + 7);
+      startDate.setHours(9, 0, 0, 0);
+      endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
     }
 
     // Determine calendar type
-    let calendar = 'Nationaal';
+    let calendar = CalendarType.NATIONAAL;
     const textLower = text.toLowerCase();
     if (textLower.includes('international') || textLower.includes('world') || textLower.includes('europe')) {
-      calendar = 'Internationaal';
+      calendar = CalendarType.INTERNATIONAAL;
     } else if (textLower.includes('beurs') || textLower.includes('fair') || textLower.includes('swap')) {
-      calendar = 'Beurzen en Diversen';
+      calendar = CalendarType.BEURZEN;
     }
 
     return {
@@ -109,7 +133,7 @@ export const extractEventDetails = async (imageBase64) => {
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
       location: "Location from poster",
       description: "Event details extracted from poster. Please review and edit as needed.",
-      calendar: "Nationaal"
+      calendar: CalendarType.NATIONAAL
     };
   }
 };

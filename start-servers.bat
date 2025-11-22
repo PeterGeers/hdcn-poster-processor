@@ -1,0 +1,13 @@
+@echo off
+echo Starting HDCN Poster Processor...
+echo.
+echo Starting Backend...
+start "Backend" cmd /k "cd /d Backend && npm run dev"
+timeout /t 3 /nobreak >nul
+echo Starting Frontend...
+start "Frontend" cmd /k "cd /d Frontend && npm run dev"
+echo.
+echo Both servers are starting...
+echo Backend: http://localhost:3001
+echo Frontend: http://localhost:5173
+pause

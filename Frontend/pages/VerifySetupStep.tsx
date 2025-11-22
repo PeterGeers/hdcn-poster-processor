@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { verifyCompleteSetup } from '../services/verificationService';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api';
+
+const verifyCompleteSetup = async () => {
+  const response = await fetch(`${BACKEND_URL}/verify-setup`);
+  if (!response.ok) {
+    throw new Error(`Verification failed: ${response.statusText}`);
+  }
+  const result = await response.json();
+  return result.results;
+};
 
 interface VerificationResult {
   service: string;

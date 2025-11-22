@@ -1,4 +1,6 @@
-export const extractEventDetails = async (imageBase64) => {
+import { EventDetails, CalendarType } from '../types.js';
+
+export const extractEventDetails = async (imageBase64: string): Promise<EventDetails> => {
   console.log('Starting OpenRouter OCR extraction...');
   
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -87,7 +89,7 @@ Rules:
     }
 
     // Try to parse JSON from the response
-    let eventData;
+    let eventData: any;
     try {
       // First try direct parse
       eventData = JSON.parse(content.trim());
@@ -106,7 +108,7 @@ Rules:
             endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
             location: 'Location from poster',
             description: content.substring(0, 200),
-            calendar: 'Nationaal'
+            calendar: CalendarType.NATIONAAL
           };
         }
       } catch (parseError) {
@@ -118,8 +120,11 @@ Rules:
     // Validate and format the response
     const title = eventData.title || 'Event from Poster';
     const location = eventData.location || 'Location from poster';
-    const description = eventData.description || 'Event details extracted from poster';
-    const calendar = eventData.calendar || 'Nationaal';
+    let description = eventData.description || 'Event details extracted from poster';
+    // Remove any template parameters like {TIJD}, {TIME}, etc.
+    description = description.replace(/\{[^}]*\}/g, '').replace(/Tot\s+Undefined\s+parameter[^\n]*/gi, '').trim();
+    if (!description) description = 'Event details extracted from poster';
+    const calendar = eventData.calendar || CalendarType.NATIONAAL;
 
     // Handle dates
     let startDate = new Date();
@@ -128,17 +133,27 @@ Rules:
     if (eventData.startDate) {
       startDate = new Date(eventData.startDate);
       if (isNaN(startDate.getTime())) {
+        // Default to next week at 9:00 AM
         startDate = new Date();
+        startDate.setDate(startDate.getDate() + 7);
+        startDate.setHours(9, 0, 0, 0);
       }
     }
     
     if (eventData.endDate) {
       endDate = new Date(eventData.endDate);
       if (isNaN(endDate.getTime())) {
-        endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000); // +4 hours
+        // If no valid end date, add 4 hours to start date
+        endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
       }
     } else {
-      endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000); // +4 hours
+      // Default end time: 4 hours after start
+      endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+    }
+    
+    // Ensure end date is after start date
+    if (endDate <= startDate) {
+      endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
     }
 
     const result_data = {
@@ -164,7 +179,7 @@ Rules:
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
       location: "Location from poster",
       description: "Event details extracted from poster. Please review and edit as needed.",
-      calendar: "Nationaal"
+      calendar: CalendarType.NATIONAAL
     };
   }
 };

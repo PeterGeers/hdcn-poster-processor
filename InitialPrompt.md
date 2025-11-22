@@ -66,3 +66,13 @@ Use a backend service (Node.js/Express or Python/Flask) to:
 - **Duplicate posters**: Show existing poster and prompt user to update existing event instead
 - **API failures**: Graceful error messages with retry options
 - **Date mismatch**: Alert if poster date differs significantly from event date
+
+
+Issues at this moment
+1.1 A issue is the way the calnder shows the end time: Tot Undefined parameter - TIJD
+
+2. We still have a problem loading images in the Google Photos (https://photos.google.com/)
+2.1 test-photos.bat: Can we focus on a test program that performs the following steps (step by step)
+2.2 Has been done: Upload an image 20251122_140933.jpg (In this workspace) to Google photos
+2.3 Still to do: Change the upload date of the image to a given date 1-1-2027
+2.4 Still to do: Allocate the image to the album

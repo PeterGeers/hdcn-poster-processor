@@ -1,15 +1,24 @@
-import express from 'express';
-import cors from 'cors';
-import multer from 'multer';
+// Load environment variables FIRST before any other imports
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-// Load environment variables from parent directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-dotenv.config({ path: join(__dirname, '../.env.local') });
+const envPath = join(__dirname, '../.env.local');
+console.log('Loading environment from:', envPath);
+dotenv.config({ path: envPath });
+console.log('Environment loaded - OAuth2 credentials:', {
+  clientId: process.env.GOOGLE_CLIENT_ID ? 'Present' : 'Missing',
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET ? 'Present' : 'Missing',
+  refreshToken: process.env.GOOGLE_REFRESH_TOKEN ? 'Present' : 'Missing'
+});
 
+// Now import everything else
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import { EventDetails } from './types.js';
 import { extractEventDetails } from './services/openrouterService.js';
 import { uploadToDrive, createCalendarEvent, uploadToGooglePhotos, checkDuplicatePoster, googleAuth } from './services/googleServices.js';
 import { verifyCompleteSetup } from './services/verificationService.js';
@@ -28,12 +37,12 @@ const upload = multer({
 });
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', message: 'HDCN Poster Processor Backend' });
 });
 
 // Check available models
-app.get('/api/models', async (req, res) => {
+app.get('/api/models', async (req: Request, res: Response) => {
   try {
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
@@ -41,20 +50,20 @@ app.get('/api/models', async (req, res) => {
       }
     });
     const models = await response.json();
-    const visionModels = models.data.filter(model => 
+    const visionModels = models.data.filter((model: any) => 
       model.id.includes('vision') || 
       model.id.includes('gpt-4o') ||
       model.id.includes('claude') ||
       model.id.includes('gemini')
     );
-    res.json({ models: visionModels.map(m => ({ id: m.id, name: m.name })) });
-  } catch (error) {
+    res.json({ models: visionModels.map((m: any) => ({ id: m.id, name: m.name })) });
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // OCR endpoint
-app.post('/api/extract', upload.single('image'), async (req, res) => {
+app.post('/api/extract', upload.single('image'), async (req: Request, res: Response) => {
   try {
     console.log('OCR request received');
     
@@ -73,38 +82,38 @@ app.post('/api/extract', upload.single('image'), async (req, res) => {
     console.log('OCR completed successfully');
     
     res.json({ success: true, data: eventDetails });
-  } catch (error) {
+  } catch (error: any) {
     console.error('OCR extraction error:', error);
     res.status(500).json({ error: error.message || 'OCR processing failed' });
   }
 });
 
 // Check duplicates
-app.post('/api/check-duplicate', async (req, res) => {
+app.post('/api/check-duplicate', async (req: Request, res: Response) => {
   try {
     const { fileName } = req.body;
     const result = await checkDuplicatePoster(fileName);
     res.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Duplicate check error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Comprehensive verification
-app.get('/api/verify-setup', async (req, res) => {
+app.get('/api/verify-setup', async (req: Request, res: Response) => {
   try {
     console.log('Running comprehensive setup verification...');
     const results = await verifyCompleteSetup();
     res.json({ success: true, results });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Verification error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Process event (upload to all Google services)
-app.post('/api/process-event', upload.single('image'), async (req, res) => {
+app.post('/api/process-event', upload.single('image'), async (req: Request, res: Response) => {
   try {
     console.log('Process event request received');
     
@@ -116,17 +125,17 @@ app.post('/api/process-event', upload.single('image'), async (req, res) => {
     console.log('File received for processing:', req.file.originalname);
     console.log('Event data raw:', req.body.eventData);
     
-    const eventData = JSON.parse(req.body.eventData);
+    const eventData: EventDetails = JSON.parse(req.body.eventData);
     console.log('Parsed event data:', eventData);
     
-    let driveResult, calendarResult, photoResult;
+    let driveResult: any, calendarResult: any, photoResult: any;
     
     // 1. Upload to Drive
     console.log('Starting Drive upload...');
     try {
       driveResult = await uploadToDrive(req.file, eventData.title);
       console.log('Drive result:', driveResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Drive upload error:', error);
       driveResult = { success: false, message: 'Drive upload failed: ' + error.message };
     }
@@ -136,7 +145,7 @@ app.post('/api/process-event', upload.single('image'), async (req, res) => {
     try {
       calendarResult = await createCalendarEvent(eventData, driveResult?.url || '');
       console.log('Calendar result:', calendarResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Calendar creation error:', error);
       calendarResult = { success: false, message: 'Calendar creation failed: ' + error.message };
     }
@@ -146,7 +155,7 @@ app.post('/api/process-event', upload.single('image'), async (req, res) => {
     try {
       photoResult = await uploadToGooglePhotos(req.file, eventData.startDate);
       console.log('Photos result:', photoResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Photos upload error:', error);
       photoResult = { success: false, message: 'Photos upload failed: ' + error.message };
     }
@@ -161,7 +170,7 @@ app.post('/api/process-event', upload.single('image'), async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Event processing error:', error);
     console.error('Error stack:', error.stack);
     res.status(500).json({ error: error.message || 'Event processing failed' });
@@ -169,24 +178,30 @@ app.post('/api/process-event', upload.single('image'), async (req, res) => {
 });
 
 // OAuth2 setup routes
-app.get('/auth/setup', async (req, res) => {
+app.get('/auth/setup', async (req: Request, res: Response) => {
+  console.log('OAuth2 setup requested');
+  console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Present' : 'Missing');
+  console.log('Client Secret:', process.env.GOOGLE_CLIENT_SECRET ? 'Present' : 'Missing');
+  
   const oauth2Client = await googleAuth.getAuthClient();
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: [
       'https://www.googleapis.com/auth/drive',
       'https://www.googleapis.com/auth/calendar',
-      'https://www.googleapis.com/auth/photoslibrary'
+      'https://www.googleapis.com/auth/photoslibrary.appendonly',
+      'https://www.googleapis.com/auth/photoslibrary.readonly'
     ]
   });
+  console.log('Generated auth URL:', authUrl);
   res.redirect(authUrl);
 });
 
-app.get('/auth/callback', async (req, res) => {
+app.get('/auth/callback', async (req: Request, res: Response) => {
   const { code } = req.query;
   try {
     const oauth2Client = await googleAuth.getAuthClient();
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken(code as string);
     console.log('All tokens received:', tokens);
     
     if (tokens.refresh_token) {
@@ -205,7 +220,7 @@ app.get('/auth/callback', async (req, res) => {
         note: 'Go to https://myaccount.google.com/permissions and revoke access, then try again'
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });

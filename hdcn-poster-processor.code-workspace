@@ -1,0 +1,114 @@
+{
+  "folders": [
+    {
+      "name": "HDCN Poster Processor",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "amazonQ.isDefaultAI": true,
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.git": true,
+      "**/.env*": false
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true
+    },
+    "terminal.integrated.cwd": "${workspaceFolder}"
+  },
+  "extensions": {
+    "recommendations": [
+      "amazon-q-developer-for-vscode.aws-toolkit-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-json",
+      "ms-vscode.vscode-eslint"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Start Frontend",
+        "type": "shell",
+        "command": "npm run dev",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        },
+        "options": {
+          "cwd": "${workspaceFolder}/Frontend"
+        }
+      },
+      {
+        "label": "Start Backend",
+        "type": "shell",
+        "command": "npm run dev",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        },
+        "options": {
+          "cwd": "${workspaceFolder}/Backend"
+        },
+        "dependsOn": "Install Backend Dependencies"
+      },
+      {
+        "label": "Install Backend Dependencies",
+        "type": "shell",
+        "command": "npm install",
+        "group": "build",
+        "options": {
+          "cwd": "${workspaceFolder}/Backend"
+        }
+      },
+      {
+        "label": "Install Frontend Dependencies",
+        "type": "shell",
+        "command": "npm install",
+        "group": "build",
+        "options": {
+          "cwd": "${workspaceFolder}/Frontend"
+        }
+      },
+      {
+        "label": "Start Both",
+        "dependsOrder": "parallel",
+        "dependsOn": ["Start Frontend", "Start Backend"]
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Backend",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/Backend/server.ts",
+        "runtimeExecutable": "npx",
+        "runtimeArgs": ["tsx", "--watch"],
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "console": "integratedTerminal",
+        "restart": true
+      }
+    ]
+  }
+}
