@@ -126,5 +126,4 @@ The HDCN Poster Processor automates the tedious manual process of:
 
 ---
 
-**Built for H-DCN (Harlingen District Contest Network)**  
-*Streamlining ham radio event management in the Netherlands*
+**Built for H-DCN (webhulpje)**  my passiion to impriove my time spent and learn AI app development in the Netherlands*
