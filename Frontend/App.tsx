@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layout } from './components/Layout';
+import { ChatWidget } from './components/ChatWidget';
 
 import { VerifySetupStep } from './pages/VerifySetupStep';
 import { UploadStep } from './pages/UploadStep';
@@ -119,6 +120,7 @@ const App: React.FC = () => {
   return (
     <Layout currentStep={currentStep}>
       {renderStep()}
+      <ChatWidget />
     </Layout>
   );
 };

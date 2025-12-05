@@ -1,6 +1,6 @@
 import { EventDetails, CalendarType } from '../types.js';
 
-export const extractEventDetails = async (imageBase64: string): Promise<EventDetails> => {
+export const extractEventDetails = async (imageBase64: string, mimeType?: string): Promise<EventDetails> => {
   console.log('Starting OpenRouter OCR extraction...');
   
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -10,176 +10,180 @@ export const extractEventDetails = async (imageBase64: string): Promise<EventDet
     throw new Error("OpenRouter API Key is missing. Please set OPENROUTER_API_KEY in .env.local");
   }
 
-  const prompt = `Look at this event poster and extract the key information. 
+  // Vision models for OCR (cheapest first)
+  const visionModels = [
+    "anthropic/claude-3-haiku",     // Cheap, reliable
+    "openai/gpt-4o-mini",          // Paid fallback
+    "anthropic/claude-3-5-sonnet",  // Premium option
+  ];
 
-Respond with ONLY a JSON object in this exact format:
+  const prompt = `Bekijk deze evenement poster en haal de belangrijkste informatie eruit. 
+
+Antwoord ALLEEN met een JSON object in dit exacte formaat:
 {
-  "title": "event name from poster",
+  "title": "evenement naam van poster (behoud Nederlandse tekst)",
   "startDate": "2024-12-15T09:00:00.000Z",
   "endDate": "2024-12-15T13:00:00.000Z",
-  "location": "venue or address from poster",
-  "description": "brief description of the event",
+  "location": "locatie of adres van poster (behoud Nederlandse tekst)",
+  "description": "korte beschrijving van het evenement (behoud Nederlandse tekst)",
   "calendar": "Nationaal"
 }
 
-Rules:
-- Use actual dates from the poster
-- If no time shown, use 09:00 for start
-- If no end time, add 4 hours to start
-- For calendar: use "Internationaal" if outside Netherlands, "Beurzen en Diversen" for fairs/swap meets, otherwise "Nationaal"`;
+Regels:
+- Gebruik werkelijke datums van de poster
+- Als geen tijd getoond, gebruik 09:00 voor start
+- Als geen eindtijd, voeg 4 uur toe aan starttijd
+- Voor calendar: gebruik "Internationaal" als buiten Nederland, "Beurzen en Diversen" voor beurzen/rommelmarkten, anders "Nationaal"
+- BELANGRIJK: Behoud alle Nederlandse tekst, vertaal NIETS naar het Engels
+- Kopieer Nederlandse woorden exact zoals ze op de poster staan`;
 
-  try {
-    console.log('Making OpenRouter API call...');
-    
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3001',
-        'X-Title': 'HDCN Poster Processor'
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenRouter API error:', response.status, errorText);
-      throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log('OpenRouter API response received');
-    
-    console.log('Full API result:', JSON.stringify(result, null, 2));
-    
-    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
-      console.error('Invalid response structure:', result);
-      throw new Error('Invalid response format from OpenRouter');
-    }
-
-    const content = result.choices[0].message.content;
-    console.log('Raw response content:', content);
-    console.log('Content type:', typeof content);
-    console.log('Content length:', content ? content.length : 0);
-
-    if (!content || content.trim() === '') {
-      throw new Error('Empty response from API');
-    }
-
-    // Try to parse JSON from the response
-    let eventData: any;
+  // Try models in order until one works
+  for (const model of visionModels) {
     try {
-      // First try direct parse
-      eventData = JSON.parse(content.trim());
-    } catch (directParseError) {
+      console.log(`Trying model: ${model}`);
+      
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'http://localhost:3001',
+          'X-Title': 'HDCN Poster Processor'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: prompt
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.1
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Model ${model} failed:`, response.status, errorText);
+        continue; // Try next model
+      }
+
+      const result = await response.json();
+      console.log(`Model ${model} succeeded`);
+    
+      if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+        console.error(`Invalid response from ${model}:`, result);
+        continue; // Try next model
+      }
+
+      const content = result.choices[0].message.content;
+      
+      if (!content || content.trim() === '') {
+        console.error(`Empty response from ${model}`);
+        continue; // Try next model
+      }
+
+      // Try to parse JSON from the response
+      let eventData: any;
       try {
-        // Extract JSON from response (might have extra text)
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          eventData = JSON.parse(jsonMatch[0]);
-        } else {
-          // If no JSON found, create from text analysis
-          console.log('No JSON found, creating from text analysis');
-          eventData = {
-            title: content.split('\n')[0] || 'Event from Poster',
-            startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-            location: 'Location from poster',
-            description: content.substring(0, 200),
-            calendar: CalendarType.NATIONAAL
-          };
+        // First try direct parse
+        eventData = JSON.parse(content.trim());
+      } catch (directParseError) {
+        try {
+          // Extract JSON from response (might have extra text)
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            eventData = JSON.parse(jsonMatch[0]);
+          } else {
+            console.error(`No valid JSON from ${model}`);
+            continue; // Try next model
+          }
+        } catch (parseError) {
+          console.error(`JSON parse error from ${model}:`, parseError);
+          continue; // Try next model
         }
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Failed to parse response as JSON');
       }
-    }
 
-    // Validate and format the response
-    const title = eventData.title || 'Event from Poster';
-    const location = eventData.location || 'Location from poster';
-    let description = eventData.description || 'Event details extracted from poster';
-    // Remove any template parameters like {TIJD}, {TIME}, etc.
-    description = description.replace(/\{[^}]*\}/g, '').replace(/Tot\s+Undefined\s+parameter[^\n]*/gi, '').trim();
-    if (!description) description = 'Event details extracted from poster';
-    const calendar = eventData.calendar || CalendarType.NATIONAAL;
+      // Validate and format the response
+      const title = eventData.title || 'Event from Poster';
+      const location = eventData.location || 'Location from poster';
+      let description = eventData.description || 'Event details extracted from poster';
+      // Remove any template parameters like {TIJD}, {TIME}, etc.
+      description = description.replace(/\{[^}]*\}/g, '').replace(/Tot\s+Undefined\s+parameter[^\n]*/gi, '').trim();
+      if (!description) description = 'Event details extracted from poster';
+      const calendar = eventData.calendar || CalendarType.NATIONAAL;
 
-    // Handle dates
-    let startDate = new Date();
-    let endDate = new Date();
-    
-    if (eventData.startDate) {
-      startDate = new Date(eventData.startDate);
-      if (isNaN(startDate.getTime())) {
-        // Default to next week at 9:00 AM
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() + 7);
-        startDate.setHours(9, 0, 0, 0);
+      // Handle dates
+      let startDate = new Date();
+      let endDate = new Date();
+      
+      if (eventData.startDate) {
+        startDate = new Date(eventData.startDate);
+        if (isNaN(startDate.getTime())) {
+          // Default to next week at 9:00 AM
+          startDate = new Date();
+          startDate.setDate(startDate.getDate() + 7);
+          startDate.setHours(9, 0, 0, 0);
+        }
       }
-    }
-    
-    if (eventData.endDate) {
-      endDate = new Date(eventData.endDate);
-      if (isNaN(endDate.getTime())) {
-        // If no valid end date, add 4 hours to start date
+      
+      if (eventData.endDate) {
+        endDate = new Date(eventData.endDate);
+        if (isNaN(endDate.getTime())) {
+          // If no valid end date, add 4 hours to start date
+          endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+        }
+      } else {
+        // Default end time: 4 hours after start
         endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
       }
-    } else {
-      // Default end time: 4 hours after start
-      endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+      
+      // Ensure end date is after start date
+      if (endDate <= startDate) {
+        endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+      }
+
+      const result_data = {
+        title,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        location,
+        description,
+        calendar
+      };
+
+      console.log(`Success with ${model}:`, result_data);
+      return result_data;
+
+    } catch (error) {
+      console.error(`Error with model ${model}:`, error);
+      continue; // Try next model
     }
-    
-    // Ensure end date is after start date
-    if (endDate <= startDate) {
-      endDate = new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
-    }
-
-    const result_data = {
-      title,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      location,
-      description,
-      calendar
-    };
-
-    console.log('Processed event data:', result_data);
-    return result_data;
-
-  } catch (error) {
-    console.error("OpenRouter Extraction Error:", error);
-    
-    // Fallback to mock data if OpenRouter fails
-    console.log('Using fallback mock data due to OpenRouter error');
-    return {
-      title: "Ham Radio Event (OCR Failed)",
-      startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-      location: "Location from poster",
-      description: "Event details extracted from poster. Please review and edit as needed.",
-      calendar: CalendarType.NATIONAAL
-    };
   }
+
+  // If all models failed
+  console.error("All OpenRouter models failed");
+    
+  // Fallback to mock data if OpenRouter fails
+  console.log('Using fallback mock data due to OpenRouter error');
+  return {
+    title: "Ham Radio Event (OCR Failed)",
+    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+    location: "Location from poster",
+    description: "Event details extracted from poster. Please review and edit as needed.",
+    calendar: CalendarType.NATIONAAL
+  };
 };

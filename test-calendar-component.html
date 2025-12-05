@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HD Event Card Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Your React component code here
+        const HDEventCard = ({ event }) => {
+            const dummyEvent = {
+                id: 1,
+                title: "Super Rally 2025",
+                category: 'Internationaal',
+                date: new Date('2025-05-24'),
+                location: 'Linköping, Zweden',
+                imageUrl: 'http://localhost:3002/api/test-image/11rMNAnPVMBfRGuZ5iQodaT5We_ruhtWc',
+            };
+
+            const eventData = event || dummyEvent;
+            const day = eventData.date.toLocaleDateString('nl-NL', { day: '2-digit' });
+            const month = eventData.date.toLocaleDateString('nl-NL', { month: 'short' }).toUpperCase().replace('.', '');
+
+            return (
+                <div style={{
+                    backgroundColor: '#1a1a1a',
+                    padding: '40px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    minHeight: '100vh'
+                }}>
+                    <div style={{
+                        backgroundColor: '#000000',
+                        width: '350px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.8)',
+                        border: '2px solid #333',
+                        cursor: 'pointer',
+                        fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+                    }}>
+                        <div style={{ position: 'relative', height: '200px', overflow: 'hidden', backgroundColor: '#333' }}>
+                            <img 
+                                src={eventData.imageUrl} 
+                                alt={eventData.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                    console.log('Image failed to load:', eventData.imageUrl);
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                                onLoad={() => console.log('Image loaded successfully')}
+                            />
+                            <div style={{
+                                display: 'none',
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: '#444',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#fff',
+                                fontSize: '14px'
+                            }}>
+                                Image not available
+                            </div>
+                            <div style={{
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                padding: '4px 10px',
+                                fontWeight: 'bold',
+                                fontSize: '0.8rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                borderRadius: '4px',
+                                backgroundColor: '#fff',
+                                color: '#000'
+                            }}>
+                                {eventData.category}
+                            </div>
+                        </div>
+                        
+                        <div style={{ padding: '20px', color: '#fff', position: 'relative' }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '-25px',
+                                left: '20px',
+                                backgroundColor: '#FF9600',
+                                color: '#000',
+                                padding: '8px 12px',
+                                textAlign: 'center',
+                                borderRadius: '4px',
+                                border: '2px solid #000',
+                                fontWeight: 'bold'
+                            }}>
+                                <div style={{ fontSize: '1.8rem' }}>{day}</div>
+                                <div style={{ fontSize: '1rem' }}>{month}</div>
+                            </div>
+                            
+                            <h3 style={{
+                                marginTop: '25px',
+                                fontSize: '1.4rem',
+                                textTransform: 'uppercase',
+                                fontWeight: '800',
+                                marginBottom: '8px'
+                            }}>
+                                {eventData.title}
+                            </h3>
+                            
+                            <div style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '20px' }}>
+                                📍 {eventData.location}
+                            </div>
+                            
+                            <button style={{
+                                width: '100%',
+                                padding: '10px',
+                                backgroundColor: 'transparent',
+                                border: '2px solid #FF9600',
+                                color: '#FF9600',
+                                fontWeight: 'bold',
+                                textTransform: 'uppercase',
+                                cursor: 'pointer'
+                            }}>
+                                Bekijk Details &gt;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the component using React 18 API
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<HDEventCard />);
+    </script>
+</body>
+</html>

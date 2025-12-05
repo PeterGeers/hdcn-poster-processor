@@ -24,7 +24,7 @@ import { uploadToDrive, createCalendarEvent, uploadToGooglePhotos, checkDuplicat
 import { verifyCompleteSetup } from './services/verificationService.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors());
@@ -62,6 +62,30 @@ app.get('/api/models', async (req: Request, res: Response) => {
   }
 });
 
+// Chat endpoint
+app.post('/api/chat', async (req: Request, res: Response) => {
+  try {
+    const { message, model = 'google/gemini-flash-1.5' } = req.body;
+    
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: message }]
+      })
+    });
+    
+    const result = await response.json();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // OCR endpoint
 app.post('/api/extract', upload.single('image'), async (req: Request, res: Response) => {
   try {
@@ -78,7 +102,7 @@ app.post('/api/extract', upload.single('image'), async (req: Request, res: Respo
     const imageBase64 = req.file.buffer.toString('base64');
     console.log('Image converted to base64, length:', imageBase64.length);
     
-    const eventDetails = await extractEventDetails(imageBase64);
+    const eventDetails = await extractEventDetails(imageBase64, req.file.mimetype);
     console.log('OCR completed successfully');
     
     res.json({ success: true, data: eventDetails });
@@ -186,6 +210,7 @@ app.get('/auth/setup', async (req: Request, res: Response) => {
   const oauth2Client = await googleAuth.getAuthClient();
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
+    prompt: 'consent',
     scope: [
       'https://www.googleapis.com/auth/drive',
       'https://www.googleapis.com/auth/calendar',

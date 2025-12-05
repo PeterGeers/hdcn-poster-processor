@@ -20,9 +20,10 @@
     "search.exclude": {
       "**/node_modules": true,
       "**/dist": true,
-      "**/build": true
+      "**/buiöld": true
     },
-    "terminal.integrated.cwd": "${workspaceFolder}"
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "openrouter.apiKey": "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"
   },
   "extensions": {
     "recommendations": [
@@ -31,7 +32,8 @@
       "bradlc.vscode-tailwindcss",
       "esbenp.prettier-vscode",
       "ms-vscode.vscode-json",
-      "ms-vscode.vscode-eslint"
+      "ms-vscode.vscode-eslint",
+      "khaled.vscode-openrouter-extension"
     ]
   },
   "tasks": {
