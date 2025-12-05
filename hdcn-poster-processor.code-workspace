@@ -23,7 +23,7 @@
       "**/buiöld": true
     },
     "terminal.integrated.cwd": "${workspaceFolder}",
-    "openrouter.apiKey": "YOUR_NEW_API_KEY_HERE"
+    "openrouter.apiKey": "REMOVED_FOR_SECURITY"
   },
   "extensions": {
     "recommendations": [
