@@ -17,9 +17,23 @@ foreach ($file in $files) {
     if ($file -like "*gitUpdate*.ps1" -or $file -like "*requirements*.txt") { continue }
     
     $content = Get-Content $file -ErrorAction SilentlyContinue
-    if ($content -and ($content | Select-String "sk-or-v1-[a-f0-9]{64}" -Quiet)) {
-        Write-Host "❌ BLOCKED: API key in $file" -ForegroundColor Red
-        $blocked = $true
+    if ($content) {
+        # Check for various API key patterns
+        $patterns = @(
+            "sk-or-v1-[a-f0-9]{64}",  # OpenRouter keys
+            "sk-[a-zA-Z0-9]{48,}",    # OpenAI keys
+            "apiKey.*sk-",            # Any apiKey field with sk- value
+            "OPENAI_API_KEY",         # Environment variable names
+            "OPENROUTER_API_KEY"
+        )
+        
+        foreach ($pattern in $patterns) {
+            if ($content | Select-String $pattern -Quiet) {
+                Write-Host "❌ BLOCKED: Potential API key in $file" -ForegroundColor Red
+                $blocked = $true
+                break
+            }
+        }
     }
 }
 

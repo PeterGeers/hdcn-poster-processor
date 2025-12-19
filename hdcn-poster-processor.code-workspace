@@ -22,8 +22,7 @@
       "**/dist": true,
       "**/buiöld": true
     },
-    "terminal.integrated.cwd": "${workspaceFolder}",
-    "openrouter.apiKey": "REMOVED_FOR_SECURITY"
+    "terminal.integrated.cwd": "${workspaceFolder}"
   },
   "extensions": {
     "recommendations": [
