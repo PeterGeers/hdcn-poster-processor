@@ -24,7 +24,9 @@ foreach ($file in $files) {
             "sk-[a-zA-Z0-9]{48,}",    # OpenAI keys
             "apiKey.*sk-",            # Any apiKey field with sk- value
             "OPENAI_API_KEY",         # Environment variable names
-            "OPENROUTER_API_KEY"
+            "OPENROUTER_API_KEY",
+            "private_key_id",         # Google Cloud Service Account
+            "client_secret"           # OAuth client secrets
         )
         
         foreach ($pattern in $patterns) {
