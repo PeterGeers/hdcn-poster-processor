@@ -26,7 +26,8 @@ Antwoord ALLEEN met een JSON object in dit exacte formaat:
   "endDate": "2024-12-15T13:00:00.000Z",
   "location": "locatie of adres van poster (behoud Nederlandse tekst)",
   "description": "korte beschrijving van het evenement (behoud Nederlandse tekst)",
-  "calendar": "Nationaal"
+  "calendar": "Nationaal",
+  "rawText": "ALLE tekst die je op de poster ziet, exact zoals het er staat, inclusief datum, tijd, locatie, beschrijving, etc."
 }
 
 Regels:
@@ -35,7 +36,7 @@ Regels:
 - Als geen eindtijd, voeg 4 uur toe aan starttijd
 - Voor calendar: gebruik "Internationaal" als buiten Nederland, "Beurzen en Diversen" voor beurzen/rommelmarkten, anders "Nationaal"
 - BELANGRIJK: Behoud alle Nederlandse tekst, vertaal NIETS naar het Engels
-- Kopieer Nederlandse woorden exact zoals ze op de poster staan`;
+- Voor rawText: kopieer ALLE zichtbare tekst van de poster, inclusief kleine details, datums, tijden, adressen, etc.`;
 
   // Try models in order until one works
   for (const model of visionModels) {
@@ -94,6 +95,9 @@ Regels:
         console.error(`Empty response from ${model}`);
         continue; // Try next model
       }
+
+      // Store the raw content for display
+      const rawOcrText = content.trim();
 
       // Try to parse JSON from the response
       let eventData: any;
@@ -161,7 +165,8 @@ Regels:
         endDate: endDate.toISOString(),
         location,
         description,
-        calendar
+        calendar,
+        rawText: eventData.rawText || rawOcrText // Use extracted raw text or fallback to AI response
       };
 
       console.log(`Success with ${model}:`, result_data);

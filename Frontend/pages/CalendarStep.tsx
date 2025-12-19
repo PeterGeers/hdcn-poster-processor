@@ -196,6 +196,23 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({ initialData, imagePr
                   className="mt-1 block w-full bg-hdcn-dark border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-hdcn-orange focus:border-hdcn-orange sm:text-sm text-white"
                 />
               </div>
+
+              {/* Raw OCR Text */}
+              {formData.rawText && (
+                <div>
+                  <label htmlFor="rawText" className="block text-sm font-medium text-gray-400">Raw OCR Text (All extracted text)</label>
+                  <textarea
+                    name="rawText"
+                    id="rawText"
+                    rows={6}
+                    value={formData.rawText}
+                    onChange={handleChange}
+                    className="mt-1 block w-full bg-hdcn-dark border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-hdcn-orange focus:border-hdcn-orange sm:text-sm text-white font-mono text-xs"
+                    placeholder="All text extracted from the poster will appear here..."
+                  />
+                  <p className="mt-1 text-xs text-gray-500">This shows all text found on the poster. You can edit it if needed.</p>
+                </div>
+              )}
             </div>
           </div>
 

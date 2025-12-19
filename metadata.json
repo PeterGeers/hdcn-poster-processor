@@ -1,0 +1,5 @@
+{
+  "name": "HDCN Poster Processor",
+  "description": "Automated poster processing, OCR extraction, and event scheduling tool for HDCN.",
+  "requestFramePermissions": []
+}

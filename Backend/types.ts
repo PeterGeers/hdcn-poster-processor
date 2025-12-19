@@ -5,6 +5,7 @@ export interface EventDetails {
   location: string;
   description: string;
   calendar: CalendarType;
+  rawText?: string; // All extracted text from poster
 }
 
 export enum CalendarType {
