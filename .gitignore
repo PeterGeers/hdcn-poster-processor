@@ -28,3 +28,5 @@ Thumbs.db
 **/client_secret_*.json
 **/*api*key*
 **/*secret*
+# Google Cloud Service Account credentials
+**/gen-lang-client-*.json
